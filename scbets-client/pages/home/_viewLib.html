@@ -1,0 +1,138 @@
+<script>
+    $(document).ready(function () {
+        $("#data-book").DataTable({
+            "paging": true,
+            "searching": true,
+        });
+
+        $("#searchData").submit(function (e) {
+            e.preventDefault();
+            console.log($(this).serialize());
+            jQuery.ajax({
+                url: atob(ajax_auth_object.routeLink),
+                type: 'POST',
+                dataType: 'json',
+                data: 'scbets_action=Q2F0ZWdvcmlhVG90YWxCb29r&&' + $(this).serialize(),
+                complete: function (xhr, textStatus) {
+                    //called when complete
+                    console.log('complete: ' + JSON.stringify(xhr))
+                },
+                success: function (data, textStatus, xhr) {
+                    //called when successful
+                    console.log('success: ' + JSON.stringify(data));
+                    let type = $("#txt_type").val();
+                    let report = $("#txt_report").val();
+                    let txt_btn = "";
+                    if (report == 1) txt_btn = "reporte blobal";
+                    if (report == 2) txt_btn = "reporte por estatus"
+                    if (report == 3) txt_btn = "reporte por estatus activos"
+                    if (report == 4) txt_btn = "reporte por estatus suspendidos"
+                    if (report == 5) txt_btn = "reporte por estatus baja"
+                    if (report == 6) txt_btn = "reporte por categoria"
+
+                    //console.log(type);
+                    $("#btn").html("");
+                    if (data.length > 0) {
+                        $("#btn").html('<button type="button" class="justify-content-center w-100 btn btn-rounded btn-outline-success d-flex align-items-center" onClick=geData(' + report + ',' + JSON.stringify(data) + ')>' +
+                            '<i class="mdi mdi-file-excel font-2 me-2"></i>' +
+                            'exportar ' + txt_btn +
+                            '</button>');
+                    } else {
+                        setNotify('warning', 'No tiene registros.', 'right');
+                    }
+
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    //called when there is an error
+                    console.log('error: ' + JSON.stringify(xhr))
+                }
+            });
+
+        });
+    });
+
+    function geData(type, param) {
+        console.log(type + '<---> ' + param)
+        if (param != []) {
+            setNotify('success', 'Éxito en la descarga del archivo.', 'right');
+            let txt_btn = "";
+            if (type == 1) txt_btn = "REPORTE_BLOBAL";
+            if (type == 2) txt_btn = "REPORTE_CONTEO_ESTATUS"
+            if (type == 3) txt_btn = "REPORTE_ESTATUS_ACTIVOS"
+            if (type == 4) txt_btn = "REPORTE_ESTATUS_SUSPENDIDOS"
+            if (type == 5) txt_btn = "REPORTE_ESTATUS_BAJA"
+            if (type == 6) txt_btn = "REPORTE_CONTEO_CATEGORIA"
+
+            let lista = "";
+            let isValid = type == 6 || type == 2 ? false : true;
+            console.log(isValid)
+            if (isValid) {
+                lista = param.map((row) => ({
+                    ID: atob(row._aresx),
+                    FOLIO: atob(row._cresx),
+                    TITULO: atob(row._dresx),
+                    AUTOR: atob(row._eresx),
+                    EDITORIAL: atob(row._fresx),
+                    LUGAR_Y_FECHA_DE_EDICION: atob(row._gresx),
+                    PAGINAS: atob(row._hresx),
+                    PERMISO: atob(row._iresx) == 1 ? 'Para Prestamo' : 'Para Reserva',
+                    UBICACION: atob(row._kresx),
+                    CATEGORIA: atob(row._mresx),
+                    STATUS: atob(row._oresx) == 1 ? 'Activo' : atob(row._oresx) == 2 ? 'Suspendido' : 'Baja',
+                }));
+            } else if (type == 2) {
+                lista = param.map((row) => ({
+                    STATUS: row.status == 1 ? 'Activos' : row.status == 2 ? 'Suspendido' : 'Baja',
+                    TOTAL: row.total,
+                }));
+            } else if (type == 6) {
+                lista = param.map((row) => ({
+                    CATEGORIAS: (row.categoria),
+                    TOTAL: (row.total),
+
+                }));
+            }
+            console.log(JSON.stringify(lista))
+            var wb = XLSX.utils.book_new(),
+                ws = XLSX.utils.json_to_sheet(lista);
+
+            XLSX.utils.book_append_sheet(wb, ws, "myFile");
+            XLSX.writeFile(wb, txt_btn + '_' + getDateHoy() + ".xlsx");
+        } else {
+            setNotify('warning', 'Ocurrío un error en la descarga.', 'right');
+        }
+    }
+</script>
+<div class="card">
+    <div class="card-body">
+       
+
+        <form id="searchData" method="post">
+            <div class="row">
+
+                <div class="col-lg-6 col-md-6 col-sm-12">
+                    <div class="mb-3">
+                        <label class="control-label col-form-label">Opciones</label>
+                        <select name="txt_report" id="txt_report" class="form-control form-select" required>
+                            <option value="">Selecciona un opción</option>
+                            <option value="1">Global</option>
+                            <option value="2">Por estatus</option>
+                            <option value="3">Por estatus Activo</option>
+                            <option value="4">Por estatus Suspendido</option>
+                            <option value="5">Por estatus Baja</option>
+                            <option value="6">Por categoria</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-12">
+                    <label class="control-label col-form-label">Buscar</label>
+                    <button type="submit"
+                        class="justify-content-center w-100 btn btn-rounded btn-outline-success d-flex align-items-center">
+                        <i class="ti  ti-search font-2 me-2"></i>
+                        Buscar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

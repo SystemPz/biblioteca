@@ -1,0 +1,5 @@
+scbets-server/temp/*.png
+!scbets-server/temp/.gitignore
+
+scbets-server/resource/temp/*.png
+!scbets-server/resource/temp/.gitignore
